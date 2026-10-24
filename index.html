@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Check-in Giải Golf - Đại Hội Mường Thanh 2026</title>
+  
+  <!-- Tailwind CSS: CDN first with local fallback for offline/GitHub Pages -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" onerror="this.onerror=null;this.href='tailwind.min.css';">
+  <!-- SheetJS: CDN first with local fallback -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script>
+    if (typeof XLSX === 'undefined') {
+      document.write('<script src="xlsx.full.min.js"><\/script>');
+    }
+  </script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #f8fafc;
+    }
+    .gold-gradient {
+      background: linear-gradient(135deg, #b45309 0%, #d97706 50%, #f59e0b 100%);
+    }
+    .emerald-gradient {
+      background: linear-gradient(135deg, #064e3b 0%, #047857 50%, #059669 100%);
+    }
+    @media print {
+      header, section, .no-print {
+        display: none !important;
+      }
+      body {
+        background-color: white !important;
+      }
+    }
+  </style>
+</head>
+<body class="text-gray-800 min-h-screen flex flex-col antialiased selection:bg-emerald-500 selection:text-white">
+
+  <!-- TOP HEADER BANNER -->
+  <header class="emerald-gradient text-white shadow-lg sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <!-- Brand & Event Title -->
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-2xl shadow-inner shrink-0">
+            ⛳
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-[11px] font-bold tracking-wider uppercase px-2 py-0.5 rounded bg-amber-400 text-gray-900">
+                Mường Thanh Hospitality
+              </span>
+              <span class="text-xs text-emerald-200 font-medium">25.10.2026</span>
+            </div>
+            <h1 class="text-lg sm:text-xl font-extrabold tracking-tight text-white flex items-center gap-2">
+              GIẢI GOLF ĐẠI HỘI MƯỜNG THANH 2026
+            </h1>
+            <p class="text-xs text-emerald-100/90">
+              Sân Golf Tràng An - Ninh Bình • Hệ thống quản lý thủ tục Check-in đón tiếp
+            </p>
+          </div>
+        </div>
+
+        <!-- Header Actions -->
+        <div class="flex items-center gap-2 self-end md:self-center flex-wrap">
+          <button onclick="window.exportToExcel()" class="px-3 py-1.5 bg-white/15 hover:bg-white/25 text-white border border-white/20 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer">
+            <span>📊</span> Xuất Excel
+          </button>
+          
+          <button onclick="window.exportBackupJSON()" title="Tải file dữ liệu JSON dự phòng" class="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-lg text-xs font-medium flex items-center gap-1 transition-all cursor-pointer">
+            <span>💾</span> Sao lưu
+          </button>
+
+          <label title="Nhập file dữ liệu JSON đã sao lưu" class="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-lg text-xs font-medium flex items-center gap-1 transition-all cursor-pointer">
+            <span>📂</span> Phục hồi
+            <input type="file" accept=".json" onchange="window.importBackupJSON(event)" class="hidden">
+          </label>
+
+          <button onclick="window.print()" title="In danh sách (Print)" class="p-1.5 bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-lg text-xs transition-all cursor-pointer">
+            🖨️
+          </button>
+
+          <button onclick="window.resetData()" title="Khôi phục danh sách gốc ban đầu" class="p-1.5 bg-white/10 hover:bg-red-500/40 text-emerald-100 hover:text-white border border-white/20 rounded-lg text-xs transition-all cursor-pointer">
+            🔄
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- DASHBOARD STATS BAR -->
+  <section class="bg-gray-900 text-white border-b border-gray-800 shadow-inner">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+      <!-- 5-card quick stats -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 text-center">
+        <!-- 1. Total -->
+        <div class="bg-gray-800/80 rounded-xl p-2.5 border border-gray-700/60">
+          <div class="text-[11px] uppercase tracking-wider text-gray-400 font-semibold">TỔNG GOLFER</div>
+          <div id="stat-total" class="text-xl sm:text-2xl font-black text-white mt-0.5">177</div>
+        </div>
+
+        <!-- 2. Checked-in -->
+        <div class="bg-emerald-950/60 rounded-xl p-2.5 border border-emerald-700/60">
+          <div class="text-[11px] uppercase tracking-wider text-emerald-400 font-semibold">ĐÃ CHECK-IN</div>
+          <div id="stat-checked" class="text-xl sm:text-2xl font-black text-emerald-400 mt-0.5">0 (0%)</div>
+        </div>
+
+        <!-- 3. Ca Sáng -->
+        <div class="bg-gray-800/80 rounded-xl p-2.5 border border-gray-700/60">
+          <div class="text-[11px] uppercase tracking-wider text-amber-400 font-semibold">CA SÁNG (6H00)</div>
+          <div id="stat-sang" class="text-xl sm:text-2xl font-black text-amber-400 mt-0.5">0/28</div>
+        </div>
+
+        <!-- 4. Ca Chiều -->
+        <div class="bg-gray-800/80 rounded-xl p-2.5 border border-gray-700/60">
+          <div class="text-[11px] uppercase tracking-wider text-blue-400 font-semibold">CA CHIỀU (11H30)</div>
+          <div id="stat-chieu" class="text-xl sm:text-2xl font-black text-blue-400 mt-0.5">0/149</div>
+        </div>
+
+        <!-- 5. VIP -->
+        <div class="bg-gray-800/80 rounded-xl p-2.5 border border-gray-700/60 col-span-2 sm:col-span-1">
+          <div class="text-[11px] uppercase tracking-wider text-yellow-400 font-semibold">KHÁCH VIP</div>
+          <div id="stat-vip" class="text-xl sm:text-2xl font-black text-yellow-400 mt-0.5">0/6</div>
+        </div>
+      </div>
+
+      <!-- Realtime Progress Bar -->
+      <div class="mt-3 flex items-center gap-3">
+        <div class="text-xs text-gray-400 whitespace-nowrap">Tiến độ check-in:</div>
+        <div class="w-full bg-gray-800 rounded-full h-2.5 overflow-hidden border border-gray-700">
+          <div id="stat-progress-bar" class="bg-emerald-500 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+        <div class="text-xs text-gray-400 whitespace-nowrap">Chưa đến: <strong id="stat-remaining" class="text-white">177</strong></div>
+      </div>
+
+      <!-- Shirt Size Inventory Status -->
+      <div class="mt-3 pt-2.5 border-t border-gray-800 flex items-center justify-between flex-wrap gap-2">
+        <div class="text-xs text-gray-400 font-semibold flex items-center gap-1.5">
+          <span>👕 Kho phát Áo đấu theo Size:</span>
+        </div>
+        <div id="size-inventory-badges" class="flex items-center gap-2 flex-wrap">
+          <!-- Rendered dynamically in app.js -->
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SEARCH & FILTER TOOLBAR -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex-1 w-full">
+    
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 mb-5 no-print">
+      <!-- Search Input -->
+      <div class="relative">
+        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 text-lg">
+          🔍
+        </div>
+        <input 
+          id="search-input" 
+          type="text" 
+          placeholder="Tìm golfer theo Họ tên, Mã VGA, Số điện thoại, Số Flight (ví dụ: 'Thản', 'Song', '35001', 'Flight 1', 'Hố 1A')... (Nhấn '/' để tìm)"
+          class="w-full pl-11 pr-24 py-3.5 bg-gray-50 border border-gray-300 rounded-xl text-base font-medium text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all placeholder:text-gray-400"
+          autocomplete="off"
+          autofocus
+        >
+        <button onclick="window.clearSearch()" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-xs font-semibold text-gray-400 hover:text-gray-700 cursor-pointer">
+          Xóa tìm kiếm
+        </button>
+      </div>
+
+      <!-- Filter Pills -->
+      <div class="mt-3.5 flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-gray-100">
+        <!-- Left: Shift filters -->
+        <div class="flex items-center gap-1.5 p-1 bg-gray-100 rounded-xl text-xs font-semibold">
+          <button data-filter-shift="all" class="px-3 py-1.5 rounded-lg bg-emerald-600 text-white shadow-sm transition-all cursor-pointer">
+            Tất cả các ca
+          </button>
+          <button data-filter-shift="Sáng" class="px-3 py-1.5 rounded-lg bg-white text-gray-700 hover:bg-gray-50 transition-all cursor-pointer">
+            🌅 Ca Sáng (6h00)
+          </button>
+          <button data-filter-shift="Chiều" class="px-3 py-1.5 rounded-lg bg-white text-gray-700 hover:bg-gray-50 transition-all cursor-pointer">
+            ☀️ Ca Chiều (11h30)
+          </button>
+        </div>
+
+        <!-- Right: Status filters -->
+        <div class="flex items-center gap-1.5 flex-wrap text-xs font-medium">
+          <button data-filter-status="all" class="px-3 py-1.5 rounded-lg bg-gray-900 text-white font-semibold transition-all cursor-pointer">
+            Tất cả
+          </button>
+          <button data-filter-status="notCheckedIn" class="px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all cursor-pointer">
+            ⏳ Chưa check-in
+          </button>
+          <button data-filter-status="checkedIn" class="px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all cursor-pointer">
+            ✅ Đã check-in
+          </button>
+          <button data-filter-status="vip" class="px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all cursor-pointer">
+            ⭐ Khách VIP
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Result Count Header -->
+    <div class="flex items-center justify-between mb-3 px-1 no-print">
+      <div id="result-count" class="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+        Đang tải danh sách golfer...
+      </div>
+      <div class="text-xs text-gray-400">
+        Bàn đón tiếp: Nhập / sửa VGA & phát đúng Size áo
+      </div>
+    </div>
+
+    <!-- GOLFER LIST CONTAINER -->
+    <div id="golfer-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <!-- Cards rendered dynamically by app.js -->
+    </div>
+
+  </main>
+
+  <!-- EDIT VGA & GOLFER INFO MODAL -->
+  <div id="edit-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-gray-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      <!-- Modal Header -->
+      <div class="emerald-gradient text-white px-6 py-4 flex items-center justify-between">
+        <div>
+          <h3 class="text-base font-bold">Chỉnh sửa thông tin Golfer</h3>
+          <p id="edit-modal-name" class="text-sm text-emerald-100 font-semibold"></p>
+        </div>
+        <button onclick="window.closeEditModal()" class="text-emerald-200 hover:text-white text-xl font-bold leading-none cursor-pointer">
+          ✕
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-6 space-y-4">
+        <!-- VGA input (Most critical) -->
+        <div>
+          <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+            Số / Mã VGA (Vhandicap) <span class="text-red-500">*</span>
+          </label>
+          <div class="relative">
+            <input 
+              id="edit-vga" 
+              type="text" 
+              placeholder="Nhập mã VGA (ví dụ: 35001, 113102...)" 
+              class="w-full px-3.5 py-2.5 bg-gray-50 border-2 border-emerald-500 rounded-xl text-lg font-mono font-bold text-emerald-950 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            >
+          </div>
+          <p class="text-[11px] text-gray-500 mt-1">Lễ tân xác nhận trực tiếp với khách khi đến quầy nếu VGA sai hoặc thiếu.</p>
+        </div>
+
+        <!-- Size áo & Flight -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Size Áo thi đấu</label>
+            <select id="edit-size" class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              <option value="">Chưa chọn</option>
+              <option value="S">Size S</option>
+              <option value="M">Size M</option>
+              <option value="L">Size L</option>
+              <option value="XL">Size XL</option>
+              <option value="XXL">Size XXL</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Flight</label>
+            <input id="edit-flight" type="text" placeholder="Số Flight" class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+        </div>
+
+        <!-- Hố & Số điện thoại -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Hố xuất phát (Hole)</label>
+            <input id="edit-hole" type="text" placeholder="Ví dụ: 1A, 1B, 11, 18A" class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Số điện thoại</label>
+            <input id="edit-phone" type="text" placeholder="Số điện thoại" class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+        </div>
+
+        <!-- Phòng khách sạn -->
+        <div>
+          <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Thông tin Phòng nghỉ / Lưu trú</label>
+          <input id="edit-room" type="text" placeholder="Ví dụ: 24/10-26/10 1DK" class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        </div>
+
+        <!-- Ghi chú đón tiếp -->
+        <div>
+          <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Ghi chú đón tiếp</label>
+          <textarea id="edit-note" rows="2" placeholder="Ghi chú về ăn uống, đổi áo, người bảo lãnh..." class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="px-6 py-3.5 bg-gray-50 border-t border-gray-200 flex items-center justify-end gap-2.5">
+        <button onclick="window.closeEditModal()" class="px-4 py-2 border border-gray-300 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-100 cursor-pointer">
+          Hủy bỏ
+        </button>
+        <button onclick="window.saveEditModal()" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold shadow-sm cursor-pointer">
+          💾 Lưu thay đổi
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="bg-white border-t border-gray-200 text-xs text-gray-500 py-3 mt-8 no-print">
+    <div class="max-w-7xl mx-auto px-4 text-center">
+      CÔNG TY CỔ PHẦN TẬP ĐOÀN MƯỜNG THANH • BAN THỂ THAO - GIẢI GOLF ĐẠI HỘI 2026
+    </div>
+  </footer>
+
+  <!-- Core Scripts -->
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
